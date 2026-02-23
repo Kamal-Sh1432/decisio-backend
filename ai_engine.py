@@ -26,7 +26,7 @@ def safe_json_extract(text: str):
 
 
 def generate_analysis(df: pd.DataFrame, question: str):
-    
+
     # ==============================
     # CLEAN NUMERIC COLUMNS
     # ==============================
@@ -34,15 +34,15 @@ def generate_analysis(df: pd.DataFrame, question: str):
     for col in ["Sales", "Profit"]:
         if col in df.columns:
             df[col] = (
-            df[col]
-            .astype(str)
-            .str.replace("$", "", regex=False)
-            .str.replace(",", "", regex=False)
-        )
-        df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
+                df[col]
+                .astype(str)
+                .str.replace("$", "", regex=False)
+                .str.replace(",", "", regex=False)
+            )
+            df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
 
     # ==============================
-    # 1️⃣ REAL KPI CALCULATIONS
+    # KPI CALCULATIONS
     # ==============================
 
     total_sales = float(df["Sales"].sum()) if "Sales" in df.columns else 0
@@ -67,100 +67,101 @@ def generate_analysis(df: pd.DataFrame, question: str):
     ]
 
     # ==============================
-    # 2️⃣ BUILD CHARTS FROM DATA
+    # CHARTS
     # ==============================
 
     charts = []
 
-    # 🔹 Bar Chart — Sales by Category
     if "Category" in df.columns and "Sales" in df.columns:
-        category_sales = (
-            df.groupby("Category")["Sales"]
-            .sum()
-            .reset_index()
-        )
+        category_sales = df.groupby("Category")["Sales"].sum().reset_index()
 
         charts.append({
             "type": "bar",
             "title": "Sales by Category",
             "data": [
-                {
-                    "category": row["Category"],
-                    "value": float(row["Sales"])
-                }
+                {"category": row["Category"], "value": float(row["Sales"])}
                 for _, row in category_sales.iterrows()
             ]
         })
 
-    # 🔹 Trend Chart — Monthly Sales
-    if "Order Date" in df.columns and "Sales" in df.columns:
-        df["Order Date"] = pd.to_datetime(df["Order Date"], errors="coerce")
-
-        monthly = (
-            df.groupby(df["Order Date"].dt.strftime("%Y-%m"))["Sales"]
-            .sum()
-            .reset_index()
-            .sort_values("Order Date")
-        )
-
-        charts.append({
-            "type": "trend",
-            "title": "Monthly Revenue Trend",
-            "data": [
-                {
-                    "month": row["Order Date"],
-                    "value": float(row["Sales"])
-                }
-                for _, row in monthly.iterrows()
-            ]
-        })
-
-    # 🔹 Pie Chart — Sales by Segment
     if "Segment" in df.columns and "Sales" in df.columns:
-        segment_sales = (
-            df.groupby("Segment")["Sales"]
-            .sum()
-            .reset_index()
-        )
+        segment_sales = df.groupby("Segment")["Sales"].sum().reset_index()
 
         charts.append({
             "type": "pie",
             "title": "Sales Distribution by Segment",
             "data": [
-                {
-                    "name": row["Segment"],
-                    "value": float(row["Sales"])
-                }
+                {"name": row["Segment"], "value": float(row["Sales"])}
                 for _, row in segment_sales.iterrows()
             ]
         })
 
     # ==============================
-    # 3️⃣ SEND ONLY SUMMARY TO AI
+    # STRUCTURAL INTELLIGENCE (JSON-BASED)
     # ==============================
 
-    dataset_summary = f"""
-    Total Sales: {round(total_sales, 2)}
-    Total Profit: {round(total_profit, 2)}
-    Total Orders: {total_orders}
-    Profit Margin: {profit_margin}%
+    structure_signals = []
 
-    Columns Available: {list(df.columns)}
-    """
+    if "Sales" in df.columns:
+
+        for col in df.columns:
+
+            if col == "Sales":
+                continue
+
+            if df[col].dtype == "object" or str(df[col].dtype) == "category":
+
+                if 1 < df[col].nunique() <= 20:
+
+                    dimension_sales = (
+                        df.groupby(col)["Sales"]
+                        .sum()
+                        .sort_values(ascending=False)
+                    )
+
+                    if len(dimension_sales) > 1:
+
+                        top_name = dimension_sales.index[0]
+                        top_value = dimension_sales.iloc[0]
+                        top_share = round((top_value / total_sales) * 100, 2)
+
+                        bottom_name = dimension_sales.index[-1]
+                        bottom_value = dimension_sales.iloc[-1]
+                        bottom_share = round((bottom_value / total_sales) * 100, 2)
+
+                        structure_signals.append({
+                            "dimension": col,
+                            "top_contributor": top_name,
+                            "top_share_percent": top_share,
+                            "lowest_contributor": bottom_name,
+                            "lowest_share_percent": bottom_share,
+                            "concentration_risk": top_share >= 50
+                        })
+
+    # ==============================
+    # DATA PACKAGE FOR AI
+    # ==============================
+
+    dataset_summary = {
+        "total_sales": round(total_sales, 2),
+        "total_profit": round(total_profit, 2),
+        "total_orders": total_orders,
+        "profit_margin_percent": profit_margin,
+        "structure_signals": structure_signals
+    }
 
     prompt = f"""
-You are a Senior Business Analyst with 20+ years experience.
+You are a board-level executive strategy advisor.
 
-Based ONLY on this dataset summary:
+Answer the user's question using ONLY the structured JSON data below.
 
-{dataset_summary}
+Business Performance Data (JSON):
+{json.dumps(dataset_summary, indent=2)}
 
-Business Question:
+User Question:
 {question}
 
-Respond ONLY with valid JSON.
-
-Structure:
+Return ONLY valid JSON in this structure:
 
 {{
   "industry": "",
@@ -173,36 +174,35 @@ Structure:
   ]
 }}
 
-Rules:
-- Executive summary must be 2–3 concise business lines.
-- Provide 4–5 key insights.
-- Provide 3–4 actionable recommendations.
-- Do not fabricate numbers.
+STRICT REQUIREMENTS:
+
+1. Executive Summary must be 3–4 strong board-ready sentences.
+2. Provide exactly 4 key insights.
+3. Each insight must be 3–4 full executive sentences.
+4. Provide 3–4 strategic recommendations.
+5. Each recommendation must contain 3–4 full sentences.
+6. Use ONLY values provided in the JSON.
+7. If concentration_risk is true, clearly identify the dimension and percentage.
+8. No generic filler statements.
+9. Directly answer the user’s question.
 """
 
     response = client.chat.completions.create(
         model="llama-3.1-8b-instant",
         messages=[{"role": "user", "content": prompt}],
         temperature=0.1,
-        max_tokens=600,
+        max_tokens=1200,
         response_format={"type": "json_object"}
     )
 
     ai_text = response.choices[0].message.content.strip()
-
     ai_output = safe_json_extract(ai_text)
-
-    # ==============================
-    # 4️⃣ MERGE REAL DATA + AI TEXT
-    # ==============================
 
     final_output = {
         "industry": ai_output.get("industry", "General Business"),
         "executive_summary": ai_output.get("executive_summary", ""),
         "primary_kpis": primary_kpis,
-        "executive_dashboard": {
-            "charts": charts
-        },
+        "executive_dashboard": {"charts": charts},
         "key_insights": ai_output.get("key_insights", []),
         "recommendations": ai_output.get("recommendations", [])
     }
