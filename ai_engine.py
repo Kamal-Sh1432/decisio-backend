@@ -84,6 +84,26 @@ def generate_analysis(df: pd.DataFrame, question: str):
             ]
         })
 
+    if "Order Date" in df.columns and "Sales" in df.columns:
+
+        df["Order Date"] = pd.to_datetime(df["Order Date"], errors="coerce")
+
+        monthly = (
+            df.groupby(df["Order Date"].dt.strftime("%Y-%m"))["Sales"]
+            .sum()
+            .reset_index()
+            .sort_values("Order Date")
+        )
+
+        charts.append({
+            "type": "trend",
+            "title": "Monthly Revenue Trend",
+            "data": [
+                {"month": row["Order Date"], "value": float(row["Sales"])}
+                for _, row in monthly.iterrows()
+            ]
+        })
+
     if "Segment" in df.columns and "Sales" in df.columns:
         segment_sales = df.groupby("Segment")["Sales"].sum().reset_index()
 
