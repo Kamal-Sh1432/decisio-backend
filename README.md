@@ -1,7 +1,6 @@
 # Deciso – Backend API
 
-## The Deciso backend powers the decision-support engine by delivering secure APIs, KPI computation logic, predictive scoring, 
-## and structured data services to the frontend dashboards.
+## The Deciso backend powers the decision-support engine by delivering secure APIs, KPI computation logic, predictive scoring, and structured data services to the frontend dashboards.
 
 This backend is designed as a scalable analytics service layer, combining business rule enforcement, 
 SQL-driven validation, and AI-based intelligence.
@@ -259,5 +258,4 @@ Real-time event processing
 Kamal Sharma
 Senior Business Analyst | Analytics Consultant
 
-The Deciso backend reflects enterprise-grade analytics delivery, combining business logic, serverless PostgreSQL architecture (Neon DB), 
-and predictive intelligence to enable structured decision-making.
+The Deciso backend reflects enterprise-grade analytics delivery, combining business logic, serverless PostgreSQL architecture (Neon DB), and predictive intelligence to enable structured decision-making.
